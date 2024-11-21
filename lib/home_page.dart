@@ -1,6 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter/widgets.dart';
 import 'package:http/http.dart' as http;
+import 'package:ticket/bookings_page.dart';
 import 'dart:convert';
+
+import 'package:ticket/event_details_page.dart';
+import 'package:ticket/profile_page.dart';
+import 'package:ticket/wishlist_page.dart';
 
 class HomePage extends StatefulWidget {
   @override
@@ -8,6 +15,62 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
+  int _currentIndex = 0;
+  final List<Widget> _pages = [
+    ExplorePage(),
+    
+    BookingsPage(),
+    WishlistPage(),
+    ProfilePage(),
+  ];
+
+  void onTabTapped(int index) {
+    setState(() {
+      _currentIndex = index;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: _pages[_currentIndex],
+      bottomNavigationBar: BottomNavigationBar(
+        currentIndex: _currentIndex,
+        onTap: onTabTapped,
+        type: BottomNavigationBarType.fixed,
+        items: [
+          BottomNavigationBarItem(
+            icon: Icon(Icons.explore),
+            label: 'Explore',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.search),
+            label: 'Search',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.book_online),
+            label: 'Bookings',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.favorite),
+            label: 'Wishlist',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.person),
+            label: 'Profile',
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class ExplorePage extends StatefulWidget {
+  @override
+  _ExplorePageState createState() => _ExplorePageState();
+}
+
+class _ExplorePageState extends State<ExplorePage> {
   List categories = [];
   List events = [];
   List trendingMovies = [];
@@ -137,7 +200,7 @@ class _HomePageState extends State<HomePage> {
                       final category = categories[index];
                       return Container(
                         margin: EdgeInsets.only(right: 15, left: 16),
-                        width: MediaQuery.of(context).size.width * 0.25,  // Dynamically setting width
+                        width: MediaQuery.of(context).size.width * 0.25,
                         decoration: BoxDecoration(
                           color: Colors.white,
                           borderRadius: BorderRadius.circular(15),
@@ -189,72 +252,84 @@ class _HomePageState extends State<HomePage> {
                     itemCount: events.length,
                     itemBuilder: (context, index) {
                       final event = events[index];
-                      return Container(
-                        margin: EdgeInsets.only(right: 15, left: 16),
-                        width: 250,
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(15),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.grey.withOpacity(0.5),
-                              blurRadius: 5,
-                              offset: Offset(0, 3),
+                      return GestureDetector(
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) =>
+                                  EventDetailsPage(eventData: event)
                             ),
-                          ],
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            ClipRRect(
-                              borderRadius: BorderRadius.vertical(
-                                  top: Radius.circular(15)),
-                              child: Image.memory(
-                                base64Decode(event['thumbnail'].split(',')[1]),
-                                height: 150,
-                                width: double.infinity,
-                                fit: BoxFit.cover,
+                          );
+                        },
+                        child: Container(
+                          margin: EdgeInsets.only(right: 15, left: 16),
+                          width: 250,
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(15),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.grey.withOpacity(0.5),
+                                blurRadius: 5,
+                                offset: Offset(0, 3),
                               ),
-                            ),
-                            Padding(
-                              padding: const EdgeInsets.all(8.0),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    event['Event_Name'] ?? 'No Event Name',
-                                    style: TextStyle(
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.bold),
-                                    maxLines: 2,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                  SizedBox(height: 4),
-                                  Text(
-                                    "${event['start_date'].split('T')[0]} - ${event['end_time']}",
-                                    style: TextStyle(
-                                        fontSize: 12, color: Colors.grey),
-                                  ),
-                                  SizedBox(height: 4),
-                                  Text(
-                                    "Location: ${event['City']}, ${event['country']}",
-                                    style: TextStyle(
-                                        fontSize: 12, color: Colors.grey),
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                  SizedBox(height: 8),
-                                  Text(
-                                    "Price: \$${event['ticketPrices'][0]['price'] ?? 'Free'}",
-                                    style: TextStyle(
-                                        fontSize: 14,
-                                        fontWeight: FontWeight.bold,
-                                        color: Colors.green),
-                                  ),
-                                ],
+                            ],
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              ClipRRect(
+                                borderRadius: BorderRadius.vertical(
+                                    top: Radius.circular(15)),
+                                child: Image.memory(
+                                  base64Decode(event['thumbnail']
+                                      .split(',')[1]),
+                                  height: 150,
+                                  width: double.infinity,
+                                  fit: BoxFit.cover,
+                                ),
                               ),
-                            ),
-                          ],
+                              Padding(
+                                padding: const EdgeInsets.all(8.0),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      event['Event_Name'] ?? 'No Event Name',
+                                      style: TextStyle(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.bold),
+                                      maxLines: 2,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                    SizedBox(height: 4),
+                                    Text(
+                                      "${event['start_date'].split('T')[0]} - ${event['end_time']}",
+                                      style: TextStyle(
+                                          fontSize: 12, color: Colors.grey),
+                                    ),
+                                    SizedBox(height: 4),
+                                    Text(
+                                      "Location: ${event['City']}, ${event['country']}",
+                                      style: TextStyle(
+                                          fontSize: 12, color: Colors.grey),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                    SizedBox(height: 8),
+                                    Text(
+                                      "Price: \$${event['ticketPrices'][0]['price'] ?? 'Free'}",
+                                      style: TextStyle(
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.bold,
+                                          color: Colors.green),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                       );
                     },
@@ -314,7 +389,7 @@ class _HomePageState extends State<HomePage> {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    movie['movie_name'] ?? 'No Movie Name',
+                                    movie['movieName'] ?? 'No Name',
                                     style: TextStyle(
                                         fontSize: 16,
                                         fontWeight: FontWeight.bold),
@@ -323,18 +398,11 @@ class _HomePageState extends State<HomePage> {
                                   ),
                                   SizedBox(height: 4),
                                   Text(
-                                    "Rating: ${movie['rating'] ?? 'No Rating'}",
+                                    "Release Date: ${movie['releaseDate']}",
                                     style: TextStyle(
                                         fontSize: 12, color: Colors.grey),
                                   ),
                                   SizedBox(height: 8),
-                                  Text(
-                                    "Price: \$${movie['ticketPrices'][0]['price'] ?? 'Free'}",
-                                    style: TextStyle(
-                                        fontSize: 14,
-                                        fontWeight: FontWeight.bold,
-                                        color: Colors.green),
-                                  ),
                                 ],
                               ),
                             ),
@@ -352,3 +420,4 @@ class _HomePageState extends State<HomePage> {
     );
   }
 }
+
