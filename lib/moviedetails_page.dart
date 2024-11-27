@@ -1,33 +1,32 @@
 import 'package:flutter/material.dart';
 import 'dart:convert';
 
-class EventDetailsPage extends StatelessWidget {
-  final Map<String, dynamic> eventData;
+class MovieDetailsPage extends StatelessWidget {
+  final Map<String, dynamic> movieData;
 
-  const EventDetailsPage({Key? key, required this.eventData}) : super(key: key);
+  const MovieDetailsPage({Key? key, required this.movieData}) : super(key: key);
+  String stripHtmlTags(String htmlString) {
+    final RegExp exp = RegExp(r"<[^>]*>", multiLine: true, caseSensitive: true);
+    return htmlString.replaceAll(exp, '').trim();
+  }
 
   @override
   Widget build(BuildContext context) {
-    final eventName = eventData['Event_Name'] ?? 'Event Name';
-    final eventAddress = eventData['Event_address'] ?? 'Event Address';
-    final organizerName = eventData['organizer_name'] ?? 'Organizer';
-    final startDate = eventData['start_date'] != null
-        ? eventData['start_date'].split('T')[0]
-        : 'Date Unavailable';
-    final startTime = eventData['start_time'] ?? 'Start Time';
-    final description = eventData['description']
-            ?.replaceAll('<p>', '')
-            .replaceAll('</p>', '') ??
-        'Description';
-    final refundPolicy = eventData['refund_policy'] ?? 'No Refund Policy';
-    final thumbnail = eventData['thumbnail'];
-    final ticketPrice = eventData['VAT'] ?? '0.00';
+    final movieName = movieData['Movie_Name'] ?? 'Movie Name';
+    final location = "${movieData['city']}, ${movieData['country']}";
+    final theatreName = movieData['Theatre_Name'] ?? 'Theatre Name';
+    final date = movieData['start_date'] ?? 'Date Unavailable';
+    final time = movieData['start_time'] ?? 'Time Unavailable';
+    final description =
+        stripHtmlTags(movieData['description'] ?? 'No Description');
+    final price = movieData['price'] ?? '0.00';
+    final thumbnail = movieData['thumbnail'];
 
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Colors.black,
         title: const Text(
-          "Event Details",
+          "Movie Details",
           style: TextStyle(color: Colors.white),
         ),
         leading: IconButton(
@@ -61,7 +60,7 @@ class EventDetailsPage extends StatelessWidget {
             ),
             const SizedBox(height: 16),
 
-            // Event Info Section
+            // Movie Info Section
             Container(
               padding: const EdgeInsets.all(16.0),
               margin: const EdgeInsets.symmetric(horizontal: 16),
@@ -80,7 +79,7 @@ class EventDetailsPage extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    eventName,
+                    movieName,
                     style: const TextStyle(
                         fontSize: 22, fontWeight: FontWeight.bold),
                   ),
@@ -92,7 +91,7 @@ class EventDetailsPage extends StatelessWidget {
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(
-                          eventAddress,
+                          location,
                           style:
                               const TextStyle(fontSize: 16, color: Colors.grey),
                         ),
@@ -106,7 +105,7 @@ class EventDetailsPage extends StatelessWidget {
                           size: 18, color: Colors.grey),
                       const SizedBox(width: 8),
                       Text(
-                        "$startDate, $startTime",
+                        " $time",
                         style:
                             const TextStyle(fontSize: 16, color: Colors.grey),
                       ),
@@ -119,7 +118,7 @@ class EventDetailsPage extends StatelessWidget {
 
             // Description Section
             Container(
-              padding: const EdgeInsets.all(16.0).copyWith(right: 206),
+              padding: const EdgeInsets.all(16.0).copyWith(right: 50),
               margin: const EdgeInsets.symmetric(horizontal: 16),
               decoration: BoxDecoration(
                 color: Colors.white,
@@ -136,7 +135,7 @@ class EventDetailsPage extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const Text(
-                    "About Event",
+                    "About Movie",
                     style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 8),
@@ -149,9 +148,9 @@ class EventDetailsPage extends StatelessWidget {
             ),
             const SizedBox(height: 16),
 
-            // Refund Policy Section
+            // Theatre Details Section
             Container(
-              padding: const EdgeInsets.all(16.0).copyWith(right: 68),
+              padding: const EdgeInsets.all(16.0).copyWith(right: 150),
               margin: const EdgeInsets.symmetric(horizontal: 16),
               decoration: BoxDecoration(
                 color: Colors.white,
@@ -164,10 +163,26 @@ class EventDetailsPage extends StatelessWidget {
                   ),
                 ],
               ),
-              child: Text(
-                "Refund Policy: $refundPolicy",
-                style:
-                    const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    "Theatre: $theatreName",
+                    style: const TextStyle(
+                        fontSize: 16,
+                        color: Colors.grey,
+                        fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    "Price: \$${price}",
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.green,
+                    ),
+                  ),
+                ],
               ),
             ),
             const SizedBox(height: 24),
@@ -177,7 +192,9 @@ class EventDetailsPage extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: 16.0),
               alignment: Alignment.center,
               child: ElevatedButton(
-                onPressed: () {},
+                onPressed: () {
+                  // Add functionality here
+                },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.blue,
                   padding:
@@ -187,7 +204,7 @@ class EventDetailsPage extends StatelessWidget {
                   ),
                 ),
                 child: Text(
-                  "BUY TICKET \$${ticketPrice}",
+                  "BUY TICKET \$${price}",
                   style: const TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
