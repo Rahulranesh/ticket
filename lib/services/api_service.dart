@@ -1,12 +1,13 @@
-// api_service.dart
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 
 class ApiService {
-  final String baseUrl =
-      'https://api.ticketverse.eu/api'; // Update to your base URL
-  final String baseUrl2 = 'https://mqnmrqvamm.us-east-1.awsapprunner.com';
+  final String baseUrl = 'https://api.ticketverse.eu/api'; // Base URL
+  final String baseUrl2 =
+      'https://mqnmrqvamm.us-east-1.awsapprunner.com'; // Secondary URL
 
+  // Login method
   Future<dynamic> login(
       String username, String password, String roleEndpoint) async {
     final response = await http.post(
@@ -21,26 +22,28 @@ class ApiService {
     return _handleResponse(response);
   }
 
+  // Google login method
   Future<dynamic> googleLogin(String token) async {
     try {
       final response = await http.post(
-        Uri.parse('$baseUrl/api/auth/google'), // Use the provided endpoint
+        Uri.parse('$baseUrl/api/auth/google'), // Google login endpoint
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({'token': token}),
       );
 
       if (response.statusCode == 200) {
-        print('Response: ${response.body}'); // Log the response
-        return jsonDecode(response.body);
+        print('Response: ${response.body}');
+        return jsonDecode(response.body); // Return response if successful
       } else {
         throw Exception('Google login failed: ${response.body}');
       }
     } catch (e) {
-      print('Error: $e'); // Log any errors
+      print('Error: $e');
       throw Exception('Error during Google login: $e');
     }
   }
 
+  // Facebook login method (not implemented, just a placeholder)
   Future<dynamic> facebookLogin(String token) async {
     final response = await http.post(
       Uri.parse('$baseUrl2/auth/facebook'),
@@ -53,15 +56,18 @@ class ApiService {
     return _handleResponse(response);
   }
 
+  // Method to handle API responses
   dynamic _handleResponse(http.Response response) {
     switch (response.statusCode) {
       case 200:
-        return jsonDecode(response.body);
+        return jsonDecode(
+            response.body); // If successful, return the response body
       default:
         throw Exception(jsonDecode(response.body)['message']);
     }
   }
 
+  // Register method (same as before)
   Future<dynamic> register(
     String firstName,
     String lastName,
@@ -111,4 +117,8 @@ class ApiService {
       throw Exception('Error during registration: $e');
     }
   }
+
+  // Fetch the wishlist
+
+  // Fetch the wishlist
 }
