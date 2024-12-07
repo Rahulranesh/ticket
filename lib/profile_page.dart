@@ -1,247 +1,171 @@
-import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'dart:convert';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
-import 'package:flutter/widgets.dart'; // Import this to use Navigator
 
-class ProfilePage extends StatelessWidget {
-  final TextEditingController emailController;
-  final ValueNotifier<String> usernameNotifier;
+class ProfilePage extends StatefulWidget {
+  const ProfilePage({Key? key}) : super(key: key);
 
-  ProfilePage({
-    required TextEditingController usernameController,
-    required this.emailController,
-    required String userId,
-  }) : usernameNotifier = ValueNotifier<String>(usernameController.text);
+  @override
+  State<ProfilePage> createState() => _ProfilePageState();
+}
 
-  final FlutterSecureStorage secureStorage = const FlutterSecureStorage();
-  final String apiUrl = "https://api.ticketverz.com/api/auth/customer";
+class _ProfilePageState extends State<ProfilePage> {
+  final storage = FlutterSecureStorage();
+  final String baseUrl = "https://api.ticketverz.com/api";
+  Map<String, dynamic>? profileData;
+  bool isLoading = true;
 
-  Future<void> updateProfile(BuildContext context) async {
+  @override
+  void initState() {
+    super.initState();
+    fetchProfileData();
+  }
+
+  Future<void> fetchProfileData() async {
     try {
-      final cookie = await secureStorage.read(key: "Attendee-Signature");
-      if (cookie == null) {
-        throw Exception("Authentication cookie not found. Please log in again.");
+      final signature = await storage.read(key: 'attendee_signature');
+      if (signature == null) {
+        print("No attendee signature found. User not logged in.");
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Please log in to view profile')),
+        );
+        return;
       }
 
-      final response = await http.put(
-        Uri.parse(apiUrl),
+      final response = await http.post(
+        Uri.parse('$baseUrl/auth/verify-session'),
         headers: {
-          "Content-Type": "application/json",
-          "Cookie": "Attendee-Signature=$cookie", // Include the cookie in the headers
+          'Content-Type': 'application/json',
+          'Cookie': 'Attendee-Signature=$signature',
         },
-        body: jsonEncode({
-          "username": usernameNotifier.value,
-          "email": emailController.text,
-        }),
       );
 
       if (response.statusCode == 200) {
-        final responseBody = jsonDecode(response.body);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(responseBody["message"] ?? "Profile updated successfully!")),
-        );
-      } else {
-        final errorResponse = jsonDecode(response.body);
-        throw Exception(errorResponse["message"] ?? "Failed to update profile.");
-      }
-    } catch (error) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Error: $error")),
-      );
-    }
-  }
+        final data = jsonDecode(response.body);
 
-  // Function to log out and clear cookies
-  Future<void> logout(BuildContext context) async {
-    try {
-      await secureStorage.deleteAll(); // Clears all stored cookies
-      Navigator.pushReplacementNamed(context, '/login'); // Redirect to login page
-    } catch (error) {
+        if (data['status'] == "Ok" && data['code'] == 200) {
+          setState(() {
+            profileData = data['data'];
+            isLoading = false;
+          });
+        } else {
+          print("Failed to fetch profile data: ${data['message']}");
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Failed to fetch profile data')),
+          );
+        }
+      } else {
+        print("Error: ${response.statusCode}");
+        print("Response: ${response.body}");
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Failed to fetch profile data')),
+        );
+      }
+    } catch (e) {
+      print("Error fetching profile data: $e");
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Error: $error")),
+        const SnackBar(content: Text('Error fetching profile data')),
       );
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final Color backgroundColor = const Color(0xFFF2F2F2);
-    final Color shadowColor = Colors.grey.shade300;
-    final Color highlightColor = Colors.white;
-
-    Widget neumorphicContainer(Widget child) {
-      return Container(
-        margin: const EdgeInsets.symmetric(vertical: 10),
-        decoration: BoxDecoration(
-          color: backgroundColor,
-          borderRadius: BorderRadius.circular(20),
-          boxShadow: [
-            BoxShadow(
-              color: shadowColor,
-              offset: const Offset(4, 4),
-              blurRadius: 6,
-            ),
-            BoxShadow(
-              color: highlightColor,
-              offset: const Offset(-4, -4),
-              blurRadius: 6,
-            ),
-          ],
+    if (isLoading) {
+      return Scaffold(
+        appBar: AppBar(
+          backgroundColor: Colors.black,
+          title: const Text("Profile", style: TextStyle(color: Colors.white)),
         ),
-        child: child,
-      );
-    }
-
-    void showEditDialog(BuildContext context) {
-      final TextEditingController editController =
-          TextEditingController(text: usernameNotifier.value);
-
-      showDialog(
-        context: context,
-        builder: (BuildContext context) {
-          return AlertDialog(
-            title: const Text("Edit Username"),
-            content: TextField(
-              controller: editController,
-              decoration: InputDecoration(
-                hintText: "Enter new username",
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(10),
-                ),
-              ),
-            ),
-            actions: [
-              TextButton(
-                onPressed: () {
-                  Navigator.of(context).pop(); // Close the dialog
-                },
-                child: const Text("Cancel"),
-              ),
-              ElevatedButton(
-                onPressed: () {
-                  usernameNotifier.value = editController.text;
-                  Navigator.of(context).pop(); // Close the dialog
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text("Username updated successfully!")),
-                  );
-                },
-                child: const Text("Save"),
-              ),
-            ],
-          );
-        },
+        body: const Center(
+          child: CircularProgressIndicator(),
+        ),
       );
     }
 
     return Scaffold(
-      backgroundColor: backgroundColor,
       appBar: AppBar(
-        backgroundColor: const Color.fromARGB(255, 8, 5, 61),
-        title: const Text('Profile'),
-        centerTitle: true,
+        backgroundColor: Colors.black,
+        title: const Text("Profile", style: TextStyle(color: Colors.white)),
       ),
-      body: Center(
-        child: Padding(
-          padding: const EdgeInsets.all(20.0),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              // Username field
-              ValueListenableBuilder<String>(
-                valueListenable: usernameNotifier,
-                builder: (context, username, _) {
-                  return neumorphicContainer(
-                    Padding(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 15, vertical: 10),
-                      child: Row(
-                        children: [
-                          Expanded(
-                            child: TextField(
-                              controller: TextEditingController(text: username),
-                              decoration: InputDecoration(
-                                hintText: 'Username',
-                                border: InputBorder.none,
-                                prefixIcon: Icon(Icons.person,
-                                    color: Colors.grey.shade600),
-                              ),
-                              style: const TextStyle(
-                                fontSize: 18,
-                                color: Colors.black,
-                              ),
-                            ),
-                          ),
-                          IconButton(
-                            icon: const Icon(Icons.edit, color: Colors.blue),
-                            onPressed: () {
-                              showEditDialog(context);
-                            },
-                          ),
-                        ],
-                      ),
-                    ),
-                  );
-                },
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              "Account Information",
+              style: TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+                color: Colors.black87,
               ),
-
-              // Email field
-              neumorphicContainer(
-                Padding(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 15, vertical: 10),
-                  child: TextField(
-                    controller: emailController,
-                    decoration: InputDecoration(
-                      hintText: "Email",
-                      border: InputBorder.none,
-                      prefixIcon:
-                          Icon(Icons.email, color: Colors.grey.shade600),
-                    ),
+            ),
+            const SizedBox(height: 16),
+            // Neumorphic container for Name
+            NeumorphicContainer(
+              child: Row(
+                children: [
+                  const Icon(Icons.person, color: Colors.grey),
+                  const SizedBox(width: 8),
+                  Text(
+                    profileData?['first_name'] ?? 'N/A',
+                    style: const TextStyle(fontSize: 18),
                   ),
-                ),
+                ],
               ),
-
-              // Save Changes button
-              SizedBox(
-                width: double.infinity,
-                child: neumorphicContainer(
-                  TextButton(
-                    onPressed: () => updateProfile(context),
-                    child: const Text(
-                      "Save Changes",
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.black,
-                      ),
-                    ),
+            ),
+            const SizedBox(height: 16),
+            // Neumorphic container for Email
+            NeumorphicContainer(
+              child: Row(
+                children: [
+                  const Icon(Icons.email, color: Colors.grey),
+                  const SizedBox(width: 8),
+                  Text(
+                    profileData?['email'] ?? 'N/A',
+                    style: const TextStyle(fontSize: 18),
                   ),
-                ),
+                ],
               ),
-
-              // Logout button
-              SizedBox(
-                width: double.infinity,
-                child: neumorphicContainer(
-                  TextButton(
-                    onPressed: () => logout(context),
-                    child: const Text(
-                      "Logout",
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.red,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
+    );
+  }
+}
+
+// Custom Neumorphic Container Widget
+class NeumorphicContainer extends StatelessWidget {
+  final Widget child;
+
+  const NeumorphicContainer({Key? key, required this.child}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.grey[200],
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.shade500,
+            offset: const Offset(4, 4),
+            blurRadius: 15,
+            spreadRadius: 1,
+          ),
+          const BoxShadow(
+            color: Colors.white,
+            offset: Offset(-4, -4),
+            blurRadius: 15,
+            spreadRadius: 1,
+          ),
+        ],
+      ),
+      padding: const EdgeInsets.all(16),
+      child: child,
     );
   }
 }

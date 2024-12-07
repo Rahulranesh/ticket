@@ -4,26 +4,75 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
 
 class EventDetailsPage extends StatefulWidget {
-  final Map<String, dynamic> eventData;
+  final String eventId;
 
-  const EventDetailsPage({Key? key, required this.eventData}) : super(key: key);
+  const EventDetailsPage({Key? key, required this.eventId}) : super(key: key);
 
   @override
   State<EventDetailsPage> createState() => _EventDetailsPageState();
 }
 
 class _EventDetailsPageState extends State<EventDetailsPage> {
-  bool isLiked = false; // Tracks the like state of the event
+  bool isLiked = false;
+  Map<String, dynamic>? eventData;
   final storage = FlutterSecureStorage();
   final String baseUrl = "https://api.ticketverz.com/api";
 
   @override
   void initState() {
     super.initState();
-    checkIfLiked();
+    fetchEventDetails();
   }
 
-  // Check if the event is already liked
+  Future<void> fetchEventDetails() async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/home/getEventContent?event_id=${widget.eventId}'),
+      );
+
+      if (response.statusCode == 200) {
+        final responseData = jsonDecode(response.body);
+        if (responseData['status'] == 'Ok' && responseData['code'] == 200) {
+          final eventList = responseData['data'] as List<dynamic>;
+
+          // Find the event by ID
+          final event = eventList.firstWhere(
+            (e) => e['event_id'] == widget.eventId,
+            orElse: () => null,
+          );
+
+          if (event != null) {
+            setState(() {
+              eventData = event;
+            });
+            checkIfLiked(); // Check if the event is liked
+          } else {
+            print("Event not found in the response.");
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Event not found')),
+            );
+          }
+        } else {
+          print("Invalid response structure: ${response.body}");
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Failed to fetch event details')),
+          );
+        }
+      } else {
+        print("Failed to fetch event details: ${response.statusCode}");
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Failed to fetch event details')),
+        );
+      }
+    } catch (e) {
+      print("Error fetching event details: $e");
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Error fetching event details')),
+      );
+    }
+  }
+
+  // Check if the event is liked
   Future<void> checkIfLiked() async {
     final signature = await storage.read(key: 'attendee_signature');
     if (signature == null) {
@@ -38,7 +87,6 @@ class _EventDetailsPageState extends State<EventDetailsPage> {
 
     if (response.statusCode == 200) {
       final responseData = jsonDecode(response.body);
-      print('Response Data: $responseData');
 
       if (responseData != null &&
           responseData['event_list'] != null &&
@@ -46,8 +94,7 @@ class _EventDetailsPageState extends State<EventDetailsPage> {
         final wishlist = responseData['event_list'];
         setState(() {
           isLiked = wishlist.any((item) =>
-              item['event_id'].toString() ==
-              widget.eventData['event_id'].toString());
+              item['event_id'].toString() == widget.eventId.toString());
         });
       } else {
         print("Event list not found in the response.");
@@ -70,15 +117,13 @@ class _EventDetailsPageState extends State<EventDetailsPage> {
         return;
       }
 
-      final eventId = widget.eventData['event_id'];
-
       final headers = {
         'Cookie': 'Attendee-Signature=$signature',
         'Content-Type': 'application/json',
       };
 
       final queryParams = {
-        'item_id': eventId,
+        'item_id': widget.eventId,
         'item_type': 'event',
       };
 
@@ -89,7 +134,6 @@ class _EventDetailsPageState extends State<EventDetailsPage> {
       final response = await http.get(uri, headers: headers);
 
       if (response.statusCode == 200) {
-        // Toggle like state locally without refetching
         setState(() {
           isLiked = !isLiked;
         });
@@ -126,17 +170,30 @@ class _EventDetailsPageState extends State<EventDetailsPage> {
 
   @override
   Widget build(BuildContext context) {
-    final eventName = widget.eventData['Event_Name'] ?? 'Event Name';
-    final eventAddress = widget.eventData['Event_address'] ?? 'Event Address';
+    if (eventData == null) {
+      return Scaffold(
+        appBar: AppBar(
+          backgroundColor: Colors.black,
+          title: const Text("Event Details",
+              style: TextStyle(color: Colors.white)),
+        ),
+        body: const Center(
+          child: CircularProgressIndicator(),
+        ),
+      );
+    }
+
+    final eventName = eventData!['Event_Name'] ?? 'Event Name';
+    final eventAddress = eventData!['Event_address'] ?? 'Event Address';
     final startDate =
-        widget.eventData['start_date']?.split('T')[0] ?? 'Date Unavailable';
-    final startTime = widget.eventData['start_time'] ?? 'Start Time';
-    final description = widget.eventData['description']
-            ?.replaceAll('<p>', ' ')
-            .replaceAll('</p>', '') ??
-        'Description';
-    final thumbnail = widget.eventData['thumbnail'];
-    final ticketPrice = widget.eventData['VAT'] ?? '0.00';
+        eventData!['start_date']?.split('T')[0] ?? 'Date Unavailable';
+    final startTime = eventData!['start_time'] ?? 'Start Time';
+    final description = eventData!['description'] != null
+        ? eventData!['description'].replaceAll(RegExp(r'<[^>]*>'), '').trim()
+        : 'Description';
+
+    final thumbnail = eventData!['thumbnail'];
+    final ticketPrice = eventData!['VAT'] ?? '0.00';
 
     return Scaffold(
       appBar: AppBar(

@@ -21,15 +21,9 @@ class _HomePageState extends State<HomePage> {
   final List<Widget> _pages = [
     ExplorePage(),
     searchPage(),
-    BookingDetailsScreen(
-
-    ),
+    BookingDetailsScreen(),
     WishlistPage(),
-    ProfilePage(
-      emailController: TextEditingController(),
-      userId: 'currentUserId',
-      usernameController: TextEditingController(),
-    ),
+    ProfilePage()
   ];
 
   void onTabTapped(int index) {
@@ -288,8 +282,9 @@ class _ExplorePageState extends State<ExplorePage> {
                             Navigator.push(
                               context,
                               MaterialPageRoute(
-                                  builder: (context) =>
-                                      EventDetailsPage(eventData: event)),
+                                builder: (context) => EventDetailsPage(
+                                    eventId: event['event_id'].toString()),
+                              ),
                             );
                           },
                           child: Container(
