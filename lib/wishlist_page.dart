@@ -1,101 +1,158 @@
 import 'package:flutter/material.dart';
 import 'dart:convert';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
 
-Future<Map<String, dynamic>> fetchWishlist() async {
-  const String url = "https://api.ticketverse.eu/api/home/wishlist";
-
-  try {
-    final response = await http.get(
-      Uri.parse(url),
-      headers: {
-        "Content-Type": "application/json",
-        "Cookie":
-            "Attendee-Signature=e3a2be00a4", // Replace with the actual cookie value
-      },
-    );
-
-    if (response.statusCode == 200) {
-      return jsonDecode(response.body);
-    } else {
-      throw Exception("Failed to load wishlist: ${response.statusCode}");
-    }
-  } catch (error) {
-    throw Exception("Error fetching wishlist: $error");
-  }
-}
-
 class WishlistPage extends StatefulWidget {
+  const WishlistPage({Key? key}) : super(key: key);
+
   @override
-  _WishlistPageState createState() => _WishlistPageState();
+  State<WishlistPage> createState() => _WishlistPageState();
 }
 
 class _WishlistPageState extends State<WishlistPage> {
-  Future<Map<String, dynamic>>? _wishlistData;
+  final storage = FlutterSecureStorage();
+  final String baseUrl = "https://api.ticketverz.com/api";
+  List<dynamic> wishlist = []; // To store the wishlist events
 
   @override
   void initState() {
     super.initState();
-    _wishlistData = fetchWishlist();
+    fetchWishlist();
+  }
+
+  Future<void> fetchWishlist() async {
+    final signature = await storage.read(key: 'attendee_signature');
+    if (signature == null) {
+      print("No attendee signature found.");
+      return;
+    }
+
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/home/wishlist'),
+        headers: {'Cookie': 'Attendee-Signature=$signature'},
+      );
+
+      if (response.statusCode == 200) {
+        final responseData = jsonDecode(response.body);
+        print('Fetched Wishlist: $responseData');
+
+        // Directly access `event_list` from the root response
+        if (responseData['event_list'] != null && mounted) {
+          setState(() {
+            wishlist = responseData['event_list'];
+          });
+        } else {
+          print("No events found in the wishlist.");
+        }
+      } else {
+        print("Failed to fetch wishlist: ${response.statusCode}");
+        print("Response body: ${response.body}");
+      }
+    } catch (error) {
+      print("Error fetching wishlist: $error");
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text("My Wishlist"),
+        title: const Text('My Wishlist'),
+        backgroundColor: Colors.black,
       ),
-      body: FutureBuilder<Map<String, dynamic>>(
-        future: _wishlistData,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return Center(child: CircularProgressIndicator());
-          } else if (snapshot.hasError) {
-            return Center(child: Text("Error: ${snapshot.error}"));
-          } else if (!snapshot.hasData || snapshot.data == null) {
-            return Center(child: Text("No data available."));
-          }
-
-          final wishlist = snapshot.data!;
-          final movieList = wishlist["movie_list"] as List;
-          final eventList = wishlist["event_list"] as List;
-
-          return ListView(
-            children: [
-              if (movieList.isNotEmpty) ...[
-                _buildSectionTitle("Movies"),
-                ...movieList.map((movie) => _buildItemCard(movie)).toList(),
-              ],
-              if (eventList.isNotEmpty) ...[
-                _buildSectionTitle("Events"),
-                ...eventList.map((event) => _buildItemCard(event)).toList(),
-              ],
-              if (movieList.isEmpty && eventList.isEmpty)
-                Center(child: Text("Your wishlist is empty!")),
-            ],
-          );
-        },
-      ),
-    );
-  }
-
-  Widget _buildSectionTitle(String title) {
-    return Padding(
-      padding: const EdgeInsets.all(8.0),
-      child: Text(
-        title,
-        style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-      ),
-    );
-  }
-
-  Widget _buildItemCard(dynamic item) {
-    return Card(
-      margin: EdgeInsets.all(8.0),
-      child: ListTile(
-        title: Text(item["name"] ?? "Unknown Item"),
-        subtitle: Text(item["description"] ?? "No description available"),
-      ),
+      body: wishlist.isEmpty
+          ? const Center(
+              child: Text(
+                'Your wishlist is empty',
+                style: TextStyle(fontSize: 18, color: Colors.grey),
+              ),
+            )
+          : ListView.builder(
+              itemCount: wishlist.length,
+              itemBuilder: (context, index) {
+                final event = wishlist[index];
+                return Card(
+                  margin: const EdgeInsets.all(8.0),
+                  elevation: 5,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: InkWell(
+                    onTap: () {
+                      // Navigate to event details page or perform an action
+                      print("Selected event: ${event['event_id']}");
+                    },
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Event image
+                        if (event['image'] != null)
+                          ClipRRect(
+                            borderRadius: const BorderRadius.only(
+                              topLeft: Radius.circular(10),
+                              topRight: Radius.circular(10),
+                            ),
+                            child: Image.network(
+                              event['image'],
+                              height: 150,
+                              width: double.infinity,
+                              fit: BoxFit.cover,
+                            ),
+                          ),
+                        Padding(
+                          padding: const EdgeInsets.all(8.0),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                event['title'] ?? 'Event Name',
+                                style: const TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              const SizedBox(height: 5),
+                              Text(
+                                event['description'] ?? 'Event Description',
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  fontSize: 14,
+                                  color: Colors.grey,
+                                ),
+                              ),
+                              const SizedBox(height: 10),
+                              Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text(
+                                    "ID: ${event['event_id'] ?? 'N/A'}",
+                                    style: const TextStyle(
+                                      fontSize: 12,
+                                      color: Colors.grey,
+                                    ),
+                                  ),
+                                  Text(
+                                    event['date'] ?? 'Date',
+                                    style: const TextStyle(
+                                      fontSize: 12,
+                                      color: Colors.grey,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
     );
   }
 }

@@ -23,7 +23,11 @@ class _HomePageState extends State<HomePage> {
     searchPage(),
     BookingsPage(),
     WishlistPage(),
-    ProfilePage(),
+    ProfilePage(
+      emailController: TextEditingController(),
+      userId: 'currentUserId',
+      usernameController: TextEditingController(),
+    ),
   ];
 
   void onTabTapped(int index) {
@@ -93,7 +97,7 @@ class _ExplorePageState extends State<ExplorePage> {
   Future<void> fetchCategories() async {
     try {
       final response = await http.get(
-          Uri.parse('https://api.ticketverse.eu/api/home/getEventCategories'));
+          Uri.parse('https://api.ticketverz.com/api/home/getEventCategories'));
       if (response.statusCode == 200) {
         setState(() {
           categories = json.decode(response.body)['data'];
@@ -107,7 +111,7 @@ class _ExplorePageState extends State<ExplorePage> {
   Future<void> fetchEvents() async {
     try {
       final response = await http
-          .get(Uri.parse('https://api.ticketverse.eu/api/home/getEvent'));
+          .get(Uri.parse('https://api.ticketverz.com/api/home/getEvent'));
       if (response.statusCode == 200) {
         setState(() {
           events = json.decode(response.body)['data']['events'];
@@ -121,7 +125,7 @@ class _ExplorePageState extends State<ExplorePage> {
   Future<void> fetchTrendingMovies() async {
     try {
       final response = await http
-          .get(Uri.parse('https://api.ticketverse.eu/api/home/getMovies'));
+          .get(Uri.parse('https://api.ticketverz.com/api/home/getMovies'));
       if (response.statusCode == 200) {
         setState(() {
           trendingMovies = json.decode(response.body)['data']['movies'];
@@ -316,26 +320,6 @@ class _ExplorePageState extends State<ExplorePage> {
                                         fit: BoxFit.cover,
                                       ),
                                     ),
-                                    Positioned(
-                                      top: 8,
-                                      right: 8,
-                                      child: IconButton(
-                                        icon: Icon(
-                                          isLiked
-                                              ? Icons.favorite
-                                              : Icons
-                                                  .favorite_border, // Toggle between filled and empty heart
-                                          color: Colors.white,
-                                          size: 30,
-                                        ),
-                                        onPressed: () {
-                                          setState(() {
-                                            isLiked =
-                                                !isLiked; // Toggle the like status
-                                          });
-                                        },
-                                      ),
-                                    ),
                                   ],
                                 ),
                                 Padding(
@@ -447,26 +431,6 @@ class _ExplorePageState extends State<ExplorePage> {
                                         height: 150,
                                         width: double.infinity,
                                         fit: BoxFit.cover,
-                                      ),
-                                    ),
-                                    Positioned(
-                                      top: 8,
-                                      right: 8,
-                                      child: IconButton(
-                                        icon: Icon(
-                                          isMovieLiked
-                                              ? Icons.favorite
-                                              : Icons
-                                                  .favorite_border, // Toggle between filled and empty heart
-                                          color: Colors.white,
-                                          size: 30,
-                                        ),
-                                        onPressed: () {
-                                          setState(() {
-                                            isMovieLiked =
-                                                !isMovieLiked; // Toggle the like status
-                                          });
-                                        },
                                       ),
                                     ),
                                   ],
