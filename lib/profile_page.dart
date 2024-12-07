@@ -70,12 +70,27 @@ class _ProfilePageState extends State<ProfilePage> {
     }
   }
 
+  Future<void> logout() async {
+    try {
+      await storage.delete(key: 'attendee_signature');
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Logged out successfully')),
+      );
+      Navigator.pushReplacementNamed(context, '/login');
+    } catch (e) {
+      print("Error during logout: $e");
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Error during logout')),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     if (isLoading) {
       return Scaffold(
         appBar: AppBar(
-          backgroundColor: Colors.black,
+          backgroundColor: const Color.fromARGB(255, 6, 1, 66),
           title: const Text("Profile", style: TextStyle(color: Colors.white)),
         ),
         body: const Center(
@@ -85,24 +100,16 @@ class _ProfilePageState extends State<ProfilePage> {
     }
 
     return Scaffold(
+      backgroundColor: Colors.grey.shade100,
       appBar: AppBar(
-        backgroundColor: Colors.black,
+        backgroundColor: const Color.fromARGB(255, 6, 1, 66),
         title: const Text("Profile", style: TextStyle(color: Colors.white)),
       ),
       body: Padding(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 24.0),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Text(
-              "Account Information",
-              style: TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-                color: Colors.black87,
-              ),
-            ),
-            const SizedBox(height: 16),
             // Neumorphic container for Name
             NeumorphicContainer(
               child: Row(
@@ -130,6 +137,23 @@ class _ProfilePageState extends State<ProfilePage> {
                 ],
               ),
             ),
+            const SizedBox(height: 40),
+            // Neumorphic container for Logout
+            GestureDetector(
+              onTap: logout,
+              child: NeumorphicContainer(
+                child: Center(
+                  child: const Text(
+                    "Logout",
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.red,
+                    ),
+                  ),
+                ),
+              ),
+            ),
           ],
         ),
       ),
@@ -147,7 +171,7 @@ class NeumorphicContainer extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.grey[200],
+        color: Colors.white,
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
@@ -165,6 +189,7 @@ class NeumorphicContainer extends StatelessWidget {
         ],
       ),
       padding: const EdgeInsets.all(16),
+      margin: const EdgeInsets.symmetric(vertical: 8.0),
       child: child,
     );
   }

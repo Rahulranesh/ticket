@@ -20,8 +20,8 @@ class _HomePageState extends State<HomePage> {
   int _currentIndex = 0;
   final List<Widget> _pages = [
     ExplorePage(),
-    searchPage(),
-    BookingDetailsScreen(),
+   
+    BookingPage(),
     WishlistPage(),
     ProfilePage()
   ];
@@ -35,6 +35,7 @@ class _HomePageState extends State<HomePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.grey.shade300,
       body: _pages[_currentIndex],
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _currentIndex,
@@ -45,10 +46,7 @@ class _HomePageState extends State<HomePage> {
             icon: Icon(Icons.explore),
             label: 'Explore',
           ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.search),
-            label: 'Search',
-          ),
+         
           BottomNavigationBarItem(
             icon: Icon(Icons.book_online),
             label: 'Bookings',
@@ -199,6 +197,7 @@ class _ExplorePageState extends State<ExplorePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor:Colors.grey.shade100 ,
       body: CustomScrollView(
         slivers: [
           SliverAppBar(

@@ -1,13 +1,27 @@
 import 'package:flutter/material.dart';
-import 'dart:convert';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
+import 'dart:convert';
 
-class BookingDetailsScreen extends StatefulWidget {
-  @override
-  _BookingDetailsScreenState createState() => _BookingDetailsScreenState();
+void main() {
+  runApp(MaterialApp(
+    home: BookingPage(),
+    theme: ThemeData(
+      primarySwatch: Colors.deepPurple,
+    ),
+  ));
 }
 
-class _BookingDetailsScreenState extends State<BookingDetailsScreen> {
+class BookingPage extends StatefulWidget {
+  const BookingPage({Key? key}) : super(key: key);
+
+  @override
+  State<BookingPage> createState() => _BookingPageState();
+}
+
+class _BookingPageState extends State<BookingPage> {
+  final storage = FlutterSecureStorage();
+  final String baseUrl = "https://api.ticketverz.com/api";
   List<dynamic> bookings = [];
   bool isLoading = true;
 
@@ -18,118 +32,228 @@ class _BookingDetailsScreenState extends State<BookingDetailsScreen> {
   }
 
   Future<void> fetchBookingDetails() async {
-    final url = Uri.parse(
-        'https://api.ticketverz.com/api/bookings/allBookingCustomer?page=1&limit=10');
-    final headers = {
-      'Cookie': 'Attendee-Signature=c0f5b6f256',
-    };
-
     try {
-      final response = await http.get(url, headers: headers);
+      final signature = await storage.read(key: 'attendee_signature');
+      if (signature == null) {
+        print("No attendee signature found. User not logged in.");
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Please log in to view bookings')),
+        );
+        return;
+      }
+
+      final response = await http.get(
+        Uri.parse('$baseUrl/bookings/allBookingCustomer?page=1&limit=10'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Cookie': 'Attendee-Signature=$signature',
+        },
+      );
 
       if (response.statusCode == 200) {
-        final data = json.decode(response.body);
+        final data = jsonDecode(response.body);
         setState(() {
-          bookings = data['data']['bookings'];
+          bookings = (data['data']['bookings'] ?? []).toSet().toList(); // Removes duplicates
           isLoading = false;
         });
       } else {
-        throw Exception('Failed to load booking details');
+        print("Error: ${response.statusCode}");
+        print("Response: ${response.body}");
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Failed to fetch booking details')),
+        );
       }
     } catch (e) {
-      print(e);
-      setState(() {
-        isLoading = false;
-      });
+      print("Error fetching booking details: $e");
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Error fetching booking details')),
+      );
     }
   }
 
-  @override
-  Widget build(BuildContext context) {
-    final Color navbarColor = Theme.of(context).primaryColor; // Navbar color
-
-    return Scaffold(
-      appBar: AppBar(
-        title: Text('Booking Details'),
+  Widget buildBookingCard(dynamic booking) {
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => BookingDetailPage(booking: booking),
+          ),
+        );
+      },
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeInOut,
+        margin: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+        padding: const EdgeInsets.all(16.0),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [Colors.deepPurple, Colors.deepPurpleAccent],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.deepPurple.withOpacity(0.5),
+              offset: const Offset(4, 4),
+              blurRadius: 15,
+              spreadRadius: 1,
+            ),
+          ],
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Leading Icon
+            CircleAvatar(
+              backgroundColor: Colors.white,
+              radius: 30,
+              child: Icon(
+                Icons.event_available,
+                color: Colors.deepPurple,
+                size: 30,
+              ),
+            ),
+            const SizedBox(width: 16),
+            // Event Details
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    booking['eventDetails']['title'] ?? 'N/A',
+                    style: const TextStyle(
+                      fontSize: 18.0,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                  ),
+                  const SizedBox(height: 8.0),
+                  // Booking Details
+                  buildDetailRow('Date:', booking['event_date'] ?? 'N/A'),
+                  buildDetailRow(
+                      'Price:', '€${booking['price']}', textColor: Colors.yellow),
+                  buildDetailRow(
+                      'Payment Status:', booking['paymentStatus'],
+                      textColor: Colors.greenAccent),
+                ],
+              ),
+            ),
+            // Trailing Arrow
+            const Icon(
+              Icons.arrow_forward_ios,
+              color: Colors.white,
+            ),
+          ],
+        ),
       ),
-      body: isLoading
-          ? Center(child: CircularProgressIndicator())
-          : bookings.isEmpty
-              ? Center(child: Text('No bookings available'))
-              : ListView.builder(
-                  itemCount: bookings.length,
-                  itemBuilder: (context, index) {
-                    final booking = bookings[index];
-                    return Card(
-                      color: navbarColor,
-                      margin: EdgeInsets.all(8.0),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10.0),
-                      ),
-                      child: Padding(
-                        padding: const EdgeInsets.all(16.0),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            _buildDetailRow('Booking ID:', booking['booking_id']),
-                            _buildDetailRow('Customer ID:', booking['customer_id']),
-                            _buildDetailRow('Event ID:', booking['event_id']),
-                            _buildDetailRow('Organizer ID:', booking['organizer_id']),
-                            _buildDetailRow('Type:', booking['type']),
-                            _buildDetailRow('First Name:', booking['first_name']),
-                            _buildDetailRow('Last Name:', booking['last_name']),
-                            _buildDetailRow('Email:', booking['email']),
-                            _buildDetailRow('Phone:', booking['phone'] ?? 'N/A'),
-                            _buildDetailRow('Price:', booking['price'].toString()),
-                            _buildDetailRow('Quantity:', booking['quantity']),
-                            _buildDetailRow('Tax:', booking['tax'].toString()),
-                            _buildDetailRow('Gateway Type:', booking['gatewayType']),
-                            _buildDetailRow(
-                                'Payment Status:', booking['paymentStatus']),
-                            _buildDetailRow('Event Title:',
-                                booking['eventDetails']['title']),
-                            _buildDetailRow('Organizer Username:',
-                                booking['organizerDetails']['username']),
-                          ],
-                        ),
-                      ),
-                    );
-                  },
-                ),
     );
   }
 
-  Widget _buildDetailRow(String fieldName, String value) {
+  Widget buildDetailRow(String title, String value,
+      {Color textColor = Colors.white}) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4.0),
+      padding: const EdgeInsets.symmetric(vertical: 2.0),
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            fieldName,
-            style: TextStyle(
+            title,
+            style: const TextStyle(
               fontWeight: FontWeight.bold,
-              color: Colors.white,
+              color: Colors.white70,
             ),
           ),
-          SizedBox(width: 8.0),
+          const SizedBox(width: 8.0),
           Expanded(
             child: Text(
               value,
-              style: TextStyle(color: Colors.white),
+              style: TextStyle(
+                color: textColor,
+              ),
             ),
           ),
         ],
       ),
     );
   }
+
+  @override
+  Widget build(BuildContext context) {
+    if (isLoading) {
+      return Scaffold(
+        appBar: AppBar(
+          backgroundColor: Colors.black,
+          title: const Text("Bookings", style: TextStyle(color: Colors.white)),
+        ),
+        body: const Center(
+          child: CircularProgressIndicator(),
+        ),
+      );
+    }
+
+    return Scaffold(
+      appBar: AppBar(
+        backgroundColor: Colors.black,
+        title: const Text("Bookings", style: TextStyle(color: Colors.white)),
+      ),
+      body: Container(
+        color: Colors.grey[100],
+        child: bookings.isEmpty
+            ? const Center(child: Text('No bookings found'))
+            : ListView.builder(
+          itemCount: bookings.length,
+          itemBuilder: (context, index) {
+            return buildBookingCard(bookings[index]);
+          },
+        ),
+      ),
+    );
+  }
 }
 
-void main() {
-  runApp(MaterialApp(
-    home: BookingDetailsScreen(),
-    theme: ThemeData(
-      primaryColor: Colors.deepPurple, // Replace with your navbar color
-    ),
-  ));
+class BookingDetailPage extends StatelessWidget {
+  final dynamic booking;
+
+  const BookingDetailPage({Key? key, required this.booking}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        backgroundColor: const Color.fromARGB(255, 6, 1, 66),
+        title: Text(booking['eventDetails']['title'] ?? 'Booking Details'),
+      ),
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            buildDetailRow('Date:', booking['event_date'] ?? 'N/A'),
+            buildDetailRow('Price:', '€${booking['price']}'),
+            buildDetailRow('Payment Status:', booking['paymentStatus']),
+            buildDetailRow('Name:',
+                '${booking['first_name']} ${booking['last_name']}'),
+            buildDetailRow('Email:', booking['email'] ?? 'N/A'),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget buildDetailRow(String title, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8.0),
+      child: Row(
+        children: [
+          Text(
+            title,
+            style: const TextStyle(fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(width: 8.0),
+          Expanded(child: Text(value)),
+        ],
+      ),
+    );
+  }
 }
