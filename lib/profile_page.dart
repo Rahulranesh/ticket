@@ -1,4 +1,8 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:http/http.dart' as http;
+import 'package:flutter/widgets.dart'; // Import this to use Navigator
 
 class ProfilePage extends StatelessWidget {
   final TextEditingController emailController;
@@ -9,6 +13,56 @@ class ProfilePage extends StatelessWidget {
     required this.emailController,
     required String userId,
   }) : usernameNotifier = ValueNotifier<String>(usernameController.text);
+
+  final FlutterSecureStorage secureStorage = const FlutterSecureStorage();
+  final String apiUrl = "https://api.ticketverz.com/api/auth/customer";
+
+  Future<void> updateProfile(BuildContext context) async {
+    try {
+      final cookie = await secureStorage.read(key: "Attendee-Signature");
+      if (cookie == null) {
+        throw Exception("Authentication cookie not found. Please log in again.");
+      }
+
+      final response = await http.put(
+        Uri.parse(apiUrl),
+        headers: {
+          "Content-Type": "application/json",
+          "Cookie": "Attendee-Signature=$cookie", // Include the cookie in the headers
+        },
+        body: jsonEncode({
+          "username": usernameNotifier.value,
+          "email": emailController.text,
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        final responseBody = jsonDecode(response.body);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(responseBody["message"] ?? "Profile updated successfully!")),
+        );
+      } else {
+        final errorResponse = jsonDecode(response.body);
+        throw Exception(errorResponse["message"] ?? "Failed to update profile.");
+      }
+    } catch (error) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Error: $error")),
+      );
+    }
+  }
+
+  // Function to log out and clear cookies
+  Future<void> logout(BuildContext context) async {
+    try {
+      await secureStorage.deleteAll(); // Clears all stored cookies
+      Navigator.pushReplacementNamed(context, '/login'); // Redirect to login page
+    } catch (error) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Error: $error")),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -25,12 +79,12 @@ class ProfilePage extends StatelessWidget {
           boxShadow: [
             BoxShadow(
               color: shadowColor,
-              offset: Offset(4, 4),
+              offset: const Offset(4, 4),
               blurRadius: 6,
             ),
             BoxShadow(
               color: highlightColor,
-              offset: Offset(-4, -4),
+              offset: const Offset(-4, -4),
               blurRadius: 6,
             ),
           ],
@@ -66,12 +120,10 @@ class ProfilePage extends StatelessWidget {
               ),
               ElevatedButton(
                 onPressed: () {
-                  // Update the username value
                   usernameNotifier.value = editController.text;
                   Navigator.of(context).pop(); // Close the dialog
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                        content: Text("Username updated successfully!")),
+                    const SnackBar(content: Text("Username updated successfully!")),
                   );
                 },
                 child: const Text("Save"),
@@ -93,12 +145,10 @@ class ProfilePage extends StatelessWidget {
         child: Padding(
           padding: const EdgeInsets.all(20.0),
           child: Column(
-            mainAxisSize: MainAxisSize.min, // Center content vertically
+            mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              // Username label
-
-              // Username field with edit option
+              // Username field
               ValueListenableBuilder<String>(
                 valueListenable: usernameNotifier,
                 builder: (context, username, _) {
@@ -136,13 +186,11 @@ class ProfilePage extends StatelessWidget {
                 },
               ),
 
-              // Email label
-
-              // Email field with neumorphic design
+              // Email field
               neumorphicContainer(
                 Padding(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 15, vertical: 10),
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 15, vertical: 10),
                   child: TextField(
                     controller: emailController,
                     decoration: InputDecoration(
@@ -155,22 +203,36 @@ class ProfilePage extends StatelessWidget {
                 ),
               ),
 
-              // Save button with neumorphic design
+              // Save Changes button
               SizedBox(
                 width: double.infinity,
                 child: neumorphicContainer(
                   TextButton(
-                    onPressed: () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text("Profile saved successfully!")),
-                      );
-                    },
+                    onPressed: () => updateProfile(context),
                     child: const Text(
                       "Save Changes",
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
                         color: Colors.black,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+
+              // Logout button
+              SizedBox(
+                width: double.infinity,
+                child: neumorphicContainer(
+                  TextButton(
+                    onPressed: () => logout(context),
+                    child: const Text(
+                      "Logout",
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.red,
                       ),
                     ),
                   ),

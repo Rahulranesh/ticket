@@ -1,5 +1,4 @@
 import 'dart:convert';
-
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
 
@@ -8,12 +7,11 @@ class ApiService {
   final String baseUrl2 =
       'https://mqnmrqvamm.us-east-1.awsapprunner.com'; // Secondary URL
 
-  final _secureStorage = FlutterSecureStorage(); // Secure storage for cookies
+  final FlutterSecureStorage _secureStorage = const FlutterSecureStorage(); // Secure storage for cookies
 
   /// Save the cookie to secure storage
   Future<void> _saveCookie(String rawCookie) async {
-    final attendeeSignature =
-        _extractCookieValue(rawCookie, 'Attendee-Signature');
+    final attendeeSignature = _extractCookieValue(rawCookie, 'Attendee-Signature');
     if (attendeeSignature != null) {
       await _secureStorage.write(
         key: 'attendee_signature',
@@ -92,8 +90,7 @@ class ApiService {
 
     // Save the cookie from the response if available
     if (response.headers.containsKey('set-cookie')) {
-      print(
-          'Raw Set-Cookie Header: ${response.headers['set-cookie']}'); // Debugging
+      print('Raw Set-Cookie Header: ${response.headers['set-cookie']}'); // Debugging
       await _saveCookie(response.headers['set-cookie']!);
     } else {
       print('No Set-Cookie header found in the response.');
@@ -149,8 +146,7 @@ class ApiService {
     final response = await http.get(
       Uri.parse('$baseUrl/home/wishlist'),
       headers: {
-        'Cookie':
-            'Attendee-Signature=$attendeeSignature', // Pass the cookie here
+        'Cookie': 'Attendee-Signature=$attendeeSignature', // Pass the cookie here
         'Content-Type': 'application/json',
       },
     );
@@ -173,6 +169,11 @@ class ApiService {
       'Organizer': '$baseUrl/auth/org/register',
       'Admin': '$baseUrl/admin/register',
     };
+
+    // Ensure the selected role exists in the map
+    if (!roleEndpoints.containsKey(selectedRole)) {
+      throw Exception('Invalid role selected.');
+    }
 
     final String url = roleEndpoints[selectedRole]!;
 
@@ -200,9 +201,8 @@ class ApiService {
       );
 
       if (response.headers.containsKey('set-cookie')) {
-        print(
-            'Raw Set-Cookie Header: ${response.headers['set-cookie']}'); // Debugging: Print raw cookie header
-        await _saveCookie(response.headers['set-cookie']!);
+        final cookie = response.headers['set-cookie']!;
+        await _saveCookie(cookie); // Save the cookie in secure storage
       }
 
       if (response.statusCode == 201 || response.statusCode == 200) {

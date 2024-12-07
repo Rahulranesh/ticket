@@ -21,7 +21,9 @@ class _HomePageState extends State<HomePage> {
   final List<Widget> _pages = [
     ExplorePage(),
     searchPage(),
-    BookingsPage(),
+    BookingDetailsScreen(
+
+    ),
     WishlistPage(),
     ProfilePage(
       emailController: TextEditingController(),
