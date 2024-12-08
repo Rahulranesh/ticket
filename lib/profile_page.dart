@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'dart:convert';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
+import 'package:ticket/update_profile.dart';
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({Key? key}) : super(key: key);
@@ -149,6 +150,29 @@ class _ProfilePageState extends State<ProfilePage> {
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
                       color: Colors.red,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            // Neumorphic container for Update Profile
+            GestureDetector(
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                      builder: (context) => const ProfileUpdatePage()),
+                );
+              },
+              child: NeumorphicContainer(
+                child: Center(
+                  child: const Text(
+                    "Update Profile",
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.blue,
                     ),
                   ),
                 ),
