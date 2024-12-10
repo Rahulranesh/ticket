@@ -4,7 +4,9 @@ import 'dart:convert';
 class MovieDetailsPage extends StatelessWidget {
   final Map<String, dynamic> movieData;
 
-  const MovieDetailsPage({Key? key, required this.movieData}) : super(key: key);
+  const MovieDetailsPage(
+      {Key? key, required this.movieData, required String movieId})
+      : super(key: key);
   String stripHtmlTags(String htmlString) {
     final RegExp exp = RegExp(r"<[^>]*>", multiLine: true, caseSensitive: true);
     return htmlString.replaceAll(exp, '').trim();

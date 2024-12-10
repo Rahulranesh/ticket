@@ -2,11 +2,14 @@ import 'package:flutter/material.dart';
 import 'dart:convert';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
+import 'package:ticket/bookingconfirmation_page.dart';
 
 class EventDetailsPage extends StatefulWidget {
   final String eventId;
+  final Map<String, dynamic>? event;
 
-  const EventDetailsPage({Key? key, required this.eventId}) : super(key: key);
+  const EventDetailsPage({Key? key, required this.eventId, this.event})
+      : super(key: key);
 
   @override
   State<EventDetailsPage> createState() => _EventDetailsPageState();
@@ -182,7 +185,9 @@ class _EventDetailsPageState extends State<EventDetailsPage> {
         ),
       );
     }
-
+    final ticketid = widget.event!['ticket_id'] ?? '';
+    final ticketname = widget.event!['ticket_name'] ?? '';
+    final tickettype = widget.event!['ticket_type'] ?? '';
     final eventName = eventData!['Event_Name'] ?? 'Event Name';
     final eventAddress = eventData!['Event_address'] ?? 'Event Address';
     final startDate =
@@ -210,15 +215,15 @@ class _EventDetailsPageState extends State<EventDetailsPage> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Event Image
+            // Event Image
             Container(
               height: 250,
               width: double.infinity,
               decoration: BoxDecoration(
                 color: Colors.grey[300],
-                image: thumbnail != null && thumbnail.contains(',')
+                image: thumbnail != null
                     ? DecorationImage(
-                        image:
-                            MemoryImage(base64Decode(thumbnail.split(',')[1])),
+                        image: NetworkImage(thumbnail),
                         fit: BoxFit.cover,
                       )
                     : null,
@@ -229,6 +234,7 @@ class _EventDetailsPageState extends State<EventDetailsPage> {
                     )
                   : null,
             ),
+
             const SizedBox(height: 16),
             // Event Info
             Padding(
@@ -316,7 +322,15 @@ class _EventDetailsPageState extends State<EventDetailsPage> {
             // Buy Ticket Button
             Center(
               child: ElevatedButton(
-                onPressed: () {},
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) =>
+                          BookingConfirmationPage(eventData: eventData!),
+                    ),
+                  );
+                },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.blue,
                   padding:

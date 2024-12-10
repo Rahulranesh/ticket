@@ -20,7 +20,6 @@ class _HomePageState extends State<HomePage> {
   int _currentIndex = 0;
   final List<Widget> _pages = [
     ExplorePage(),
-   
     BookingPage(),
     WishlistPage(),
     ProfilePage()
@@ -46,7 +45,6 @@ class _HomePageState extends State<HomePage> {
             icon: Icon(Icons.explore),
             label: 'Explore',
           ),
-         
           BottomNavigationBarItem(
             icon: Icon(Icons.book_online),
             label: 'Bookings',
@@ -197,7 +195,7 @@ class _ExplorePageState extends State<ExplorePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor:Colors.grey.shade100 ,
+      backgroundColor: Colors.grey.shade100,
       body: CustomScrollView(
         slivers: [
           SliverAppBar(
@@ -282,7 +280,9 @@ class _ExplorePageState extends State<ExplorePage> {
                               context,
                               MaterialPageRoute(
                                 builder: (context) => EventDetailsPage(
-                                    eventId: event['event_id'].toString()),
+                                    eventId: event['event_id'], event: event!
+                                    // Ensure event data is passed correctly
+                                    ),
                               ),
                             );
                           },
@@ -308,12 +308,25 @@ class _ExplorePageState extends State<ExplorePage> {
                                     ClipRRect(
                                       borderRadius: BorderRadius.vertical(
                                           top: Radius.circular(15)),
-                                      child: Image.memory(
-                                        base64Decode(
-                                            event['thumbnail'].split(',')[1]),
+                                      child: Image.network(
+                                        event['thumbnail'],
                                         height: 150,
                                         width: double.infinity,
                                         fit: BoxFit.cover,
+                                        errorBuilder:
+                                            (context, error, stackTrace) {
+                                          return Container(
+                                            color: Colors.grey,
+                                            height: 150,
+                                            width: double.infinity,
+                                            alignment: Alignment.center,
+                                            child: Text(
+                                              'Image not available',
+                                              style: TextStyle(
+                                                  color: Colors.white),
+                                            ),
+                                          );
+                                        },
                                       ),
                                     ),
                                   ],
@@ -392,8 +405,10 @@ class _ExplorePageState extends State<ExplorePage> {
                             Navigator.push(
                               context,
                               MaterialPageRoute(
-                                builder: (context) =>
-                                    MovieDetailsPage(movieData: movie),
+                                builder: (context) => MovieDetailsPage(
+                                  movieData: movie,
+                                  movieId: movie['movie_id'].toString(),
+                                ),
                               ),
                             );
                           },
