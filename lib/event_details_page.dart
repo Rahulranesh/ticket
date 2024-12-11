@@ -185,9 +185,25 @@ class _EventDetailsPageState extends State<EventDetailsPage> {
         ),
       );
     }
-    final ticketid = widget.event!['ticket_id'] ?? '';
-    final ticketname = widget.event!['ticket_name'] ?? '';
-    final tickettype = widget.event!['ticket_type'] ?? '';
+    final ticketPrices = widget.event?['ticketPrices'] as List<dynamic>?;
+
+    final ticketid = ticketPrices != null && ticketPrices.isNotEmpty
+        ? ticketPrices[0]['ticket_id'].toString() ?? 'Unavailable'
+        : 'Unavailable';
+    final ticketname = ticketPrices != null && ticketPrices.isNotEmpty
+        ? ticketPrices[0]['variation_name'] ?? 'Unavailable'
+        : 'Unavailable';
+    final tickettype = ticketPrices != null && ticketPrices.isNotEmpty
+        ? ticketPrices[0]['ticket_type'] ?? 'Unavailable'
+        : 'Unavailable';
+    final ticketprice = ticketPrices != null && ticketPrices.isNotEmpty
+        ? ticketPrices[0]['price'].toString() ?? 'Unavailable'
+        : 'Unavailable';
+
+    print("Ticket ID: $ticketid, Name: $ticketname, Type: $tickettype");
+    final organizername = eventData!['organizer_name'] ?? '';
+    final organizerphoto = eventData!['organizer_photo'] ?? '';
+
     final eventName = eventData!['Event_Name'] ?? 'Event Name';
     final eventAddress = eventData!['Event_address'] ?? 'Event Address';
     final startDate =
@@ -198,7 +214,6 @@ class _EventDetailsPageState extends State<EventDetailsPage> {
         : 'Description';
 
     final thumbnail = eventData!['thumbnail'];
-    final ticketPrice = eventData!['VAT'] ?? '0.00';
 
     return Scaffold(
       appBar: AppBar(
@@ -326,8 +341,13 @@ class _EventDetailsPageState extends State<EventDetailsPage> {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) =>
-                          BookingConfirmationPage(eventData: eventData!),
+                      builder: (context) => BookingConfirmationPage(
+                        eventData: eventData!,
+                        ticketId: ticketid,
+                        ticketName: ticketname,
+                        ticketType: tickettype,
+                        ticketPrice: ticketprice,
+                      ),
                     ),
                   );
                 },
@@ -340,7 +360,7 @@ class _EventDetailsPageState extends State<EventDetailsPage> {
                   ),
                 ),
                 child: Text(
-                  "BUY TICKET \$${ticketPrice}",
+                  "BUY TICKET \$${ticketprice}",
                   style: const TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,

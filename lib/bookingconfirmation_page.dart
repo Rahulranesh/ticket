@@ -5,8 +5,18 @@ import 'package:http/http.dart' as http;
 
 class BookingConfirmationPage extends StatefulWidget {
   final Map<String, dynamic> eventData;
+  final String ticketId;
+  final String ticketName;
+  final String ticketType;
+  final String ticketPrice;
 
-  const BookingConfirmationPage({Key? key, required this.eventData})
+  const BookingConfirmationPage(
+      {Key? key,
+      required this.eventData,
+      required this.ticketId,
+      required this.ticketName,
+      required this.ticketType,
+      required this.ticketPrice})
       : super(key: key);
 
   @override
@@ -49,20 +59,21 @@ class _BookingConfirmationPageState extends State<BookingConfirmationPage> {
           "organizer_id": widget.eventData['organizer_id'],
           "ticketDetails": [
             {
-              "ticket_name": "GOLD", // Replace with user-selected ticket name
+              "ticket_name":
+                  widget.ticketName, // Replace with user-selected ticket name
               "quantity": selectedQuantity, // Get this from user input
-              "price":
-                  "30.00", // Replace with dynamic ticket price if applicable
+              "price": widget
+                  .ticketPrice, // Replace with dynamic ticket price if applicable
             }
           ],
           "tickets": [
             {
-              "ticket_id": widget
-                  .eventData['ticket_id'], // Replace with ticket ID from data
+              "ticket_id": widget.ticketId
+                  .toString(), // Replace with ticket ID from data
               "quantity": selectedQuantity, // Get this from user input
             }
           ],
-          "ticket_type": "paid",
+          "ticket_type": widget.ticketType,
           "quantity": selectedQuantity, // Get this from user input
         },
       });
@@ -120,7 +131,7 @@ class _BookingConfirmationPageState extends State<BookingConfirmationPage> {
     final eventName = widget.eventData['Event_Name'] ?? '';
     final location = widget.eventData['City'] ?? '';
     final startTime = widget.eventData['start_time'] ?? '';
-    final ticketPrice = widget.eventData['Price'] ?? '0.00';
+    final ticketPrice = widget.ticketPrice ?? '0.00';
 
     return Scaffold(
       appBar: AppBar(
@@ -140,7 +151,7 @@ class _BookingConfirmationPageState extends State<BookingConfirmationPage> {
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: const Color.fromARGB(255, 0, 10, 17),
+                color: const Color.fromARGB(255, 20, 2, 64),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Column(
@@ -245,12 +256,12 @@ class _BookingConfirmationPageState extends State<BookingConfirmationPage> {
               child: ElevatedButton(
                 onPressed: isProcessing ? null : initiatePayment,
                 style: ElevatedButton.styleFrom(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 40, vertical: 12),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                ),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 40, vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    backgroundColor: const Color.fromARGB(255, 20, 2, 64)),
                 child: isProcessing
                     ? const CircularProgressIndicator(color: Colors.white)
                     : const Text(
